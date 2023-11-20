@@ -6,5 +6,6 @@ A TShock instant bridge builder plugin.
 |----------------------|------------------------|
 | bridgebuilder.bridge | bridge                 |
 
-> When player uses the command ``/bridge`` server will start placing platforms/planter boxes/walls at the player's direction. <br>
+> First of all player needs to be holding platforms, planter boxes or walls in their hand.
+> When player uses the command ``/bridge`` server will start placing platforms/planter boxes/walls at the player's direction.
 > Placement process will stop when there is a block on the way.

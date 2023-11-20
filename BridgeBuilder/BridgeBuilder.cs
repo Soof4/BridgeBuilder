@@ -8,7 +8,7 @@ namespace SFactions
     [ApiVersion(2, 1)]
     public class SFactions : TerrariaPlugin {
         public override string Name => "BridgeBuilder";
-        public override Version Version => new Version(0, 0, 1);
+        public override Version Version => new Version(1, 0, 0);
         public override string Author => "Soofa";
         public override string Description => "Build bridges!";
         public SFactions(Main game) : base(game) {
@@ -48,7 +48,7 @@ namespace SFactions
                     return;
                     }
 
-                    while (Math.Abs(plr.TileX - i) < 255 && plr.SelectedItem.stack > 0) {
+                    while (Math.Abs(plr.TileX - i) < 255 && plr.SelectedItem.stack > 0 && !TShock.Regions.InArea(i, j)) {
                     if (Main.tile[i, j].active()) {
                         break;
                     }
@@ -60,7 +60,7 @@ namespace SFactions
                     }
                 }
                 else {
-                   while (Math.Abs(plr.TileX - i) < 255 && plr.SelectedItem.stack > 0) {
+                   while (Math.Abs(plr.TileX - i) < 255 && plr.SelectedItem.stack > 0 && !TShock.Regions.InArea(i, j)) {
                     if (Main.tile[i, j].active()) {
                         break;
                     }

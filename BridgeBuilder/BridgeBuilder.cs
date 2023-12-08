@@ -8,7 +8,7 @@ namespace SFactions
     [ApiVersion(2, 1)]
     public class SFactions : TerrariaPlugin {
         public override string Name => "BridgeBuilder";
-        public override Version Version => new Version(1, 0, 0);
+        public override Version Version => new Version(1, 0, 2);
         public override string Author => "Soofa";
         public override string Description => "Build bridges!";
         public SFactions(Main game) : base(game) {
@@ -19,7 +19,7 @@ namespace SFactions
         public override void Initialize() {
             TShockAPI.Commands.ChatCommands.Add(new("bridgebuilder.bridge", BridgeCmd, "bridge") {
                 AllowServer = false,
-                HelpText = "Builds bridges towards the direction you're looking. (You need to be holding some amount of blocks or walls."
+                HelpText = "Builds bridges towards the direction you're looking. (You need to be holding some amount of blocks or walls.)"
             });
         }
 
@@ -27,7 +27,8 @@ namespace SFactions
             await Task.Run(() => {
                 TSPlayer plr = args.Player;
                 int direction = plr.TPlayer.direction;
-                int i = direction == -1 ? plr.TileX -1 : plr.TileX + 2; 
+                int startX = direction == -1 ? plr.TileX - 1 : plr.TileX + 2;
+                int i = 0;
                 int j = plr.TileY + 3;
                 Item selectedItem = plr.SelectedItem;
 
@@ -37,45 +38,47 @@ namespace SFactions
                 }
 
                 bool isTile = selectedItem.createTile >= 0;
-                ushort placementId = selectedItem.createTile < 0 ? (ushort)selectedItem.createWall : (ushort)selectedItem.createTile;
                 int styleId = selectedItem.placeStyle;
 
+                if (j > Main.maxTilesY || j < 0) {
+                    plr.SendErrorMessage("Can't build a bridge here.");
+                    return;
+                }
                 
                 if (isTile) {
-                    if (!AllowedTileIDs.Contains(placementId)) {
-                    plr.SendErrorMessage("The item you're holding is not allowed for auto bridging. " + 
-                                                 "(Only platforms, planter boxes and walls are allowed.)");
-                    return;
+                    if (!AllowedTileIDs.Contains(selectedItem.createTile)) {
+                        plr.SendErrorMessage("The item you're holding is not allowed for auto bridging. " + 
+                                             "(Only platforms, planter boxes and walls are allowed.)");
+                        return;
                     }
 
-                    while (Math.Abs(plr.TileX - i) < 255 && plr.SelectedItem.stack > 0 && !TShock.Regions.InArea(i, j)) {
-                    if (Main.tile[i, j].active()) {
-                        break;
-                    }
-
-                    WorldGen.PlaceTile(i, j, placementId, false, true, -1, styleId);
-                
-                    plr.SelectedItem.stack--;
-                    i += direction;
+                    while (CheckTileAvailability(startX, startX + i, j, plr)) {
+                        WorldGen.PlaceTile(startX + i, j, selectedItem.createTile, false, true, -1, styleId);
+                        TSPlayer.All.SendTileRect((short)(startX + i), (short)j, 1, 1);
+                        plr.SelectedItem.stack--;
+                        i += direction;
                     }
                 }
                 else {
-                   while (Math.Abs(plr.TileX - i) < 255 && plr.SelectedItem.stack > 0 && !TShock.Regions.InArea(i, j)) {
-                    if (Main.tile[i, j].active()) {
-                        break;
+                    while (CheckTileAvailability(startX, startX + i, j, plr)) {
+                        Main.tile[startX + i, j].wall = (ushort)selectedItem.createWall;
+                        TSPlayer.All.SendTileRect((short)(startX + i), (short)j, 1, 1);
+                        plr.SelectedItem.stack--;
+                        i += direction;
                     }
-                    
-                    Main.tile[i, j].wall = placementId;
-                    
-                    plr.SelectedItem.stack--;
-                    i += direction;
-                   }
                 }
 
-                TSPlayer.All.SendTileRect(direction == -1 ? (short)i : (short)plr.TileX, (short)j, 255, 1);
                 NetMessage.SendData((int)PacketTypes.PlayerSlot, -1, -1, NetworkText.FromLiteral(plr.SelectedItem.Name), plr.Index, plr.TPlayer.selectedItem);
                 NetMessage.SendData((int)PacketTypes.PlayerSlot, plr.Index, -1, NetworkText.FromLiteral(plr.SelectedItem.Name), plr.Index, plr.TPlayer.selectedItem);
             });
+        }
+
+        private static bool CheckTileAvailability(int startX, int x, int y, TSPlayer plr) {
+            return x < Main.maxTilesX && x >= 0 && 
+                   Math.Abs(startX - x) < 256 && 
+                   plr.SelectedItem.stack > 0 && 
+                   !TShock.Regions.InArea(x, y) &&
+                   !Main.tile[x, y].active();
         }
     }
 }
